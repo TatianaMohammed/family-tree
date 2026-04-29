@@ -415,8 +415,8 @@ const familyData = {
       details: { "Spouse": "Alex Garcia" },
       children: [
         {
-          name: "Tania", nickname: "", generation: 2, spouse: "",
-          details: { "Ex-husband": "Troy Selland", "Note": "Troy is Tyler Selland's brother. Ximena from a previous relationship; Ariana & Sofia with Troy" },
+          name: "Tania", nickname: "", generation: 2, spouse: "", exSpouse: "Troy Selland",
+          details: { "Note": "Troy is Tyler Selland's brother. Ximena from a previous relationship; Ariana & Sofia with Troy" },
           children: [
             { name: "Ximena", nickname: "", generation: 3, spouse: "", details: { "Father": "Different father", "Note": "From Tania's previous relationship" }, children: [] },
             { name: "Ariana", nickname: "", generation: 3, spouse: "", details: { "Father": "Troy Selland" }, children: [] },
@@ -620,7 +620,7 @@ function update(source) {
   nodeEnter.append('text')
     .attr('class', 'node-name')
     .attr('x', -NW / 2 + ACCENT + 14)
-    .attr('y', d => (d.data.nickname || d.data.spouse) ? -8 : 1)
+    .attr('y', d => (d.data.nickname || d.data.spouse || d.data.exSpouse) ? -8 : 1)
     .attr('dy', '0.35em')
     .attr('font-size', d => d.data.name.length > 13 ? '17px' : '20px')
     .text(d => d.data.name + (d.data.deceased ? ' ✝' : ''));
@@ -636,6 +636,7 @@ function update(source) {
       const parts = [];
       if (d.data.nickname) parts.push(`"${d.data.nickname}"`);
       if (d.data.spouse) parts.push('♥ ' + d.data.spouse);
+      if (d.data.exSpouse) parts.push('💔 ' + d.data.exSpouse);
       return parts.join('  ·  ');
     });
 
@@ -712,7 +713,10 @@ function showDetail(data) {
   h += data.nickname ? `<div class="nickname">"${data.nickname}"</div>` : '<div style="height:10px"></div>';
 
   if (data.spouse) {
-    h += `<div class="info-row"><span class="info-label">Spouse</span><span class="info-value">${data.spouse}</span></div>`;
+    h += `<div class="info-row"><span class="info-label">Spouse</span><span class="info-value">♥ ${data.spouse}</span></div>`;
+  }
+  if (data.exSpouse) {
+    h += `<div class="info-row"><span class="info-label">Ex-spouse</span><span class="info-value">💔 ${data.exSpouse}</span></div>`;
   }
 
   if (data.children && data.children.length) {
@@ -730,7 +734,7 @@ function showDetail(data) {
     }
   }
 
-  const hasInfo = data.spouse || (data.children && data.children.length) || Object.keys(det).length;
+  const hasInfo = data.spouse || data.exSpouse || (data.children && data.children.length) || Object.keys(det).length;
   if (!hasInfo) {
     h += `<div class="info-row" style="color:#a07b62;font-style:italic">Details coming soon — ask the family!</div>`;
   }
