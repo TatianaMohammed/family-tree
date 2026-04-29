@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Familia de Beatriz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #fefcf9 0%, #faf3eb 50%, #f5ece0 100%);
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  header {
+    text-align: center;
+    padding: 16px 20px 8px;
+    background: linear-gradient(135deg, #8b6f5c 0%, #b8967a 100%);
+    color: #fffdf9;
+    box-shadow: 0 2px 12px rgba(91,58,41,0.15);
+    position: relative;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-top: 2px;
+    font-weight: 300;
+  }
+
+  #tree-container {
+    width: 100%;
+    height: calc(100vh - 72px);
+    cursor: grab;
+    position: relative;
+  }
+
+  #tree-container:active { cursor: grabbing; }
+
+  .controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 20;
+  }
+
+  .controls button {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: #a07e68;
+    color: #fffdf9;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .controls button:hover { background: #c4a48e; }
+
+  .link {
+    fill: none;
+    stroke: #d4bfa8;
+    stroke-width: 1.8;
+    stroke-opacity: 0.6;
+  }
+
+  .node-group { cursor: pointer; }
+
+  .node-card {
+    rx: 10;
+    ry: 10;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+    transition: filter 0.2s;
+  }
+
+  .node-group:hover .node-card {
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  }
+
+  .node-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    fill: #fff;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+
+  .node-nickname {
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 13px;
+    fill: rgba(255,255,255,0.9);
+    text-anchor: middle;
+    pointer-events: none;
+  }
+
+  .node-spouse-label {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    fill: rgba(255,255,255,0.8);
+    text-anchor: middle;
+    pointer-events: none;
+  }
+
+  .gen-0 .node-card { fill: #8b6f5c; }
+  .gen-1 .node-card { fill: #a8917d; }
+  .gen-2 .node-card { fill: #c4a48e; }
+  .gen-3 .node-card { fill: #d9c2ae; }
+
+  .deceased .node-card { fill-opacity: 0.6; }
+
+  /* Detail overlay */
+  .detail-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(91,58,41,0.25);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .detail-overlay.active {
+    display: flex;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .detail-card {
+    background: #fffefb;
+    border-radius: 18px;
+    padding: 30px 30px 26px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 8px 40px rgba(91,58,41,0.18);
+    position: relative;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .detail-card .close-btn {
+    position: absolute;
+    top: 10px; right: 14px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #8b5e3c;
+  }
+
+  .gen-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    color: #fff;
+  }
+
+  .gen-badge.g0 { background: #8b6f5c; }
+  .gen-badge.g1 { background: #a8917d; }
+  .gen-badge.g2 { background: #c4a48e; }
+  .gen-badge.g3 { background: #d9c2ae; }
+
+  .detail-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: #6b5344;
+    margin-bottom: 4px;
+  }
+
+  .detail-card .nickname {
+    font-size: 0.88rem;
+    color: #8b5e3c;
+    margin-bottom: 14px;
+    font-style: italic;
+  }
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0e6d9;
+    font-size: 0.85rem;
+  }
+
+  .info-row:last-child { border-bottom: none; }
+
+  .info-label {
+    font-weight: 600;
+    color: #8b5e3c;
+    min-width: 85px;
+    flex-shrink: 0;
+  }
+
+  .info-value { color: #5b3a29; }
+
+  .memorial {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #f9f0e5;
+    border-left: 3px solid #c9956b;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.82rem;
+    color: #8b5e3c;
+    font-style: italic;
+  }
+
+  .legend {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(255,251,245,0.95);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 20;
+    font-size: 0.72rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 3px 0;
+    color: #5b3a29;
+  }
+
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 600px) {
+    header h1 { font-size: 1.2rem; }
+    .legend { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Familia de Beatriz</h1>
+  <p>4 Generations &middot; Click any name for details</p>
+</header>
+
+<div id="tree-container"></div>
+
+<div class="controls">
+  <button onclick="zoomIn()" title="Zoom In">+</button>
+  <button onclick="zoomOut()" title="Zoom Out">&minus;</button>
+  <button onclick="resetView()" title="Reset View">&#8634;</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#8b6f5c"></div> Generation 1 &mdash; Matriarch</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a8917d"></div> Generation 2 &mdash; Children</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c4a48e"></div> Generation 3 &mdash; Grandchildren</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d9c2ae"></div> Generation 4 &mdash; Great-Grandchildren</div>
+</div>
+
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="detail-card" id="detailCard"></div>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// =====================================================================
+//  FAMILY DATA — Edit names, details, and relationships here.
+//  To add a person: add an object to the parent's "children" array.
+//  To add details: add key/value pairs to the "details" object.
+// =====================================================================
+const familyData = {
+  name: "Beatriz", nickname: "", generation: 0, spouse: "", deceased: false,
+  details: {},
+  children: [
+    // ── ANTONIO (TONY) ──
+    {
+      name: "Antonio", nickname: "Tony", generation: 1,
+      spouse: "1st wife / Olga",
+      details: { "Spouse": "Olga (2nd wife)", "Note": "Had Tonio with first wife; other children with Olga" },
+      children: [
+        {
+          name: "Tonio", nickname: "", generation: 2, spouse: "Rita",
+          details: { "Spouse": "Rita", "Mother": "Antonio's first wife" },
+          children: [
+            { name: "Maddie", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Isla", nickname: "", generation: 3, spouse: "", details: {}, children: [] }
+          ]
+        },
+        {
+          name: "Ariana", nickname: "", generation: 2, spouse: "",
+          details: { "Mother": "Olga", "Note": "Cassie & Aliyah from first relationship; Avierie with Rob O'Shea (no longer together)" },
+          children: [
+            { name: "Cassie", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Aliyah", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Avierie", nickname: "", generation: 3, spouse: "", details: { "Father": "Rob O'Shea" }, children: [] }
+          ]
+        },
+        {
+          name: "Beatriz", nickname: "", generation: 2, spouse: "",
+          details: { "Mother": "Olga", "Named after": "Grandmother Beatriz" },
+          children: [
+            { name: "Tony", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Ray", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Alex", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Chloe", nickname: "", generation: 3, spouse: "", details: {}, children: [] }
+          ]
+        },
+        {
+          name: "David", nickname: "", generation: 2, spouse: "Monica",
+          details: { "Spouse": "Monica", "Mother": "Olga" },
+          children: [
+            { name: "Malikai", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "David", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Jasmine", nickname: "", generation: 3, spouse: "", details: {}, children: [] }
+          ]
+        },
+        {
+          name: "Anabel", nickname: "", generation: 2, spouse: "Osama",
+          details: { "Spouse": "Osama", "Mother": "Olga" },
+          children: [
+            { name: "Analaya", nickname: "", generation: 3, spouse: "", details: {}, children: [] }
+          ]
+        }
+      ]
+    },
+    // ── JESÚS (CHUY) ──
+    {
+      name: "Jesús", nickname: "Chuy", generation: 1, spouse: "Emma",
+      details: { "Spouse": "Emma" },
+      children: [
+        { name: "César", nickname: "", generation: 2, spouse: "", details: {}, children: [] },
+        { name: "Chuito", nickname: "", generation: 2, spouse: "", details: {}, children: [] },
+        {
+          name: "Beatriz", nickname: "Lily", generation: 2, spouse: "",
+          details: {}, children: []
+        },
+        {
+          name: "Jeanette", nickname: "Anna", generation: 2, spouse: "Tyler Selland",
+          details: { "Spouse": "Tyler Selland" },
+          children: [
+            { name: "Amerni", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Alexa", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Nico", nickname: "", generation: 3, spouse: "", details: {}, children: [] }
+          ]
+        },
+        {
+          name: "Thalia", nickname: "Emma", generation: 2, spouse: "",
+          details: {}, children: []
+        },
+        { name: "Stephanie", nickname: "", generation: 2, spouse: "", details: {}, children: [] }
+      ]
+    },
+    // ── JOSÉ LUIS (PEPE) ──
+    {
+      name: "José Luis", nickname: "Pepe", generation: 1, spouse: "Bertha",
+      deceased: true,
+      details: { "Spouse": "Bertha (deceased)", "Status": "Both deceased" },
+      children: [
+        {
+          name: "Ellie", nickname: "", generation: 2, spouse: "",
+          deceased: true,
+          details: { "In memoriam": "Passed away from breast cancer" },
+          children: []
+        },
+        { name: "Violeta", nickname: "", generation: 2, spouse: "", details: {}, children: [] },
+        {
+          name: "Mirium", nickname: "", generation: 2, spouse: "Jesús Acosta",
+          details: { "Spouse": "Jesús Acosta" },
+          children: [
+            { name: "Darshan", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Dorian", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Dian", nickname: "", generation: 3, spouse: "", details: {}, children: [] }
+          ]
+        },
+        { name: "Nelson", nickname: "", generation: 2, spouse: "", details: {}, children: [] }
+      ]
+    },
+    // ── ANABEL (CUCA) ──
+    {
+      name: "Anabel", nickname: "Cuca", generation: 1, spouse: "Alex",
+      details: { "Spouse": "Alex" },
+      children: [
+        {
+          name: "Tania", nickname: "", generation: 2, spouse: "Troy Selland",
+          details: { "Spouse": "Troy Selland", "Note": "Troy is Tyler Selland's brother. Ximena from previous relationship; Ariana & Sofia with Troy" },
+          children: [
+            { name: "Ximena", nickname: "", generation: 3, spouse: "", details: { "Note": "From previous relationship" }, children: [] },
+            { name: "Ariana", nickname: "", generation: 3, spouse: "", details: { "Father": "Troy Selland" }, children: [] },
+            { name: "Sofia", nickname: "", generation: 3, spouse: "", details: { "Father": "Troy Selland" }, children: [] }
+          ]
+        },
+        { name: "Ivan", nickname: "", generation: 2, spouse: "", details: {}, children: [] }
+      ]
+    },
+    // ── SALVADOR (PORRES) ──
+    {
+      name: "Salvador", nickname: "Porres", generation: 1, spouse: "Tracy Vlassis May",
+      details: { "Spouse": "Tracy Vlassis May" },
+      children: [
+        { name: "Tatiana", nickname: "", generation: 2, spouse: "", details: {}, children: [] },
+        {
+          name: "Cristiana", nickname: "", generation: 2, spouse: "Michel Wnaka",
+          details: { "Spouse": "Michel Wnaka" },
+          children: [
+            { name: "Isabel", nickname: "", generation: 3, spouse: "", details: {}, children: [] },
+            { name: "Cristian", nickname: "", generation: 3, spouse: "", details: {}, children: [] }
+          ]
+        },
+        { name: "Salvador", nickname: "", generation: 2, spouse: "", details: {}, children: [] },
+        { name: "Marco Antonio", nickname: "", generation: 2, spouse: "", details: {}, children: [] }
+      ]
+    }
+  ]
+};
+
+// =====================================================================
+//  D3 TREE RENDERING
+// =====================================================================
+const container = document.getElementById('tree-container');
+const W = container.clientWidth;
+const H = container.clientHeight;
+
+const svg = d3.select('#tree-container')
+  .append('svg')
+  .attr('width', W)
+  .attr('height', H);
+
+const g = svg.append('g');
+
+const zoomBehavior = d3.zoom()
+  .scaleExtent([0.15, 3])
+  .on('zoom', (e) => g.attr('transform', e.transform));
+
+svg.call(zoomBehavior);
+
+function zoomIn()  { svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.3); }
+function zoomOut() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.7); }
+
+const root = d3.hierarchy(familyData);
+const nodeW = 180, nodeH = 64;
+
+const treeLayout = d3.tree()
+  .nodeSize([nodeW + 20, nodeH + 100])
+  .separation((a, b) => a.parent === b.parent ? 1 : 1.15);
+
+treeLayout(root);
+
+const nodes = root.descendants();
+const xExt = d3.extent(nodes, d => d.x);
+const yExt = d3.extent(nodes, d => d.y);
+const treeW = xExt[1] - xExt[0] + nodeW + 60;
+const treeH = yExt[1] - yExt[0] + nodeH + 60;
+const initScale = Math.min(W / treeW, H / treeH, 0.75);
+
+function resetView() {
+  svg.transition().duration(500).call(
+    zoomBehavior.transform,
+    d3.zoomIdentity.translate(W / 2, 30).scale(initScale)
+  );
+}
+
+svg.call(
+  zoomBehavior.transform,
+  d3.zoomIdentity.translate(W / 2, 30).scale(initScale)
+);
+
+// Links
+g.selectAll('.link')
+  .data(root.links())
+  .join('path')
+  .attr('class', 'link')
+  .attr('d', d => {
+    const sy = d.source.y + nodeH / 2;
+    const ty = d.target.y - nodeH / 2;
+    const mid = (sy + ty) / 2;
+    return `M${d.source.x},${sy} C${d.source.x},${mid} ${d.target.x},${mid} ${d.target.x},${ty}`;
+  });
+
+// Nodes
+const ng = g.selectAll('.node-group')
+  .data(nodes)
+  .join('g')
+  .attr('class', d => {
+    let c = `node-group gen-${d.data.generation}`;
+    if (d.data.deceased) c += ' deceased';
+    return c;
+  })
+  .attr('transform', d => `translate(${d.x - nodeW / 2}, ${d.y - nodeH / 2})`)
+  .on('click', (e, d) => showDetail(d.data));
+
+// Compute card height per node
+function cardH(d) {
+  let h = nodeH;
+  if (d.data.nickname) h += 8;
+  if (d.data.spouse) h += 16;
+  return h;
+}
+
+ng.append('rect')
+  .attr('class', 'node-card')
+  .attr('width', nodeW)
+  .attr('height', d => cardH(d))
+  .attr('y', d => -(cardH(d) - nodeH) / 2);
+
+// Deceased cross
+ng.filter(d => d.data.deceased)
+  .append('text')
+  .attr('x', nodeW - 14).attr('y', 4)
+  .attr('font-size', '11px')
+  .attr('fill', 'rgba(255,255,255,0.55)')
+  .text('✝');
+
+// Name
+ng.append('text')
+  .attr('class', 'node-name')
+  .attr('x', nodeW / 2)
+  .attr('y', d => {
+    let base = nodeH / 2;
+    if (d.data.nickname || d.data.spouse) base -= 7;
+    return base;
+  })
+  .attr('dy', '0.35em')
+  .attr('font-size', d => d.data.name.length > 11 ? '15px' : '18px')
+  .text(d => d.data.name);
+
+// Nickname
+ng.filter(d => d.data.nickname)
+  .append('text')
+  .attr('class', 'node-nickname')
+  .attr('x', nodeW / 2)
+  .attr('y', d => nodeH / 2 + (d.data.spouse ? 8 : 10))
+  .attr('dy', '0.35em')
+  .text(d => `"${d.data.nickname}"`);
+
+// Spouse
+ng.filter(d => d.data.spouse)
+  .append('text')
+  .attr('class', 'node-spouse-label')
+  .attr('x', nodeW / 2)
+  .attr('y', d => {
+    let base = nodeH / 2 + 10;
+    if (d.data.nickname) base += 14;
+    return base;
+  })
+  .attr('dy', '0.35em')
+  .text(d => {
+    const s = d.data.spouse;
+    return s.length > 20 ? '♥ ' + s.substring(0, 18) + '…' : '♥ ' + s;
+  });
+
+// =====================================================================
+//  DETAIL PANEL
+// =====================================================================
+const genLabels = ['Matriarch', 'Child of Beatriz', 'Grandchild', 'Great-Grandchild'];
+
+function showDetail(data) {
+  const card = document.getElementById('detailCard');
+  const gc = `g${data.generation}`;
+  let h = `<button class="close-btn" onclick="closeDetail(event)">&times;</button>`;
+  h += `<span class="gen-badge ${gc}">${genLabels[data.generation] || ''}</span>`;
+  h += `<h2>${data.name}${data.deceased ? ' ✝' : ''}</h2>`;
+  h += data.nickname ? `<div class="nickname">"${data.nickname}"</div>` : '<div style="height:10px"></div>';
+
+  if (data.spouse) {
+    h += `<div class="info-row"><span class="info-label">Spouse</span><span class="info-value">${data.spouse}</span></div>`;
+  }
+
+  if (data.children && data.children.length) {
+    const names = data.children.map(c => c.nickname ? `${c.name} (${c.nickname})` : c.name).join(', ');
+    h += `<div class="info-row"><span class="info-label">Children</span><span class="info-value">${names}</span></div>`;
+  }
+
+  const det = data.details || {};
+  for (const [k, v] of Object.entries(det)) {
+    if (k === 'Spouse') continue;
+    if (k === 'In memoriam') {
+      h += `<div class="memorial">\u{1F54A} ${v}</div>`;
+    } else {
+      h += `<div class="info-row"><span class="info-label">${k}</span><span class="info-value">${v}</span></div>`;
+    }
+  }
+
+  const hasInfo = data.spouse || (data.children && data.children.length) || Object.keys(det).length;
+  if (!hasInfo) {
+    h += `<div class="info-row" style="color:#b07d56;font-style:italic">Details coming soon — ask the family!</div>`;
+  }
+
+  card.innerHTML = h;
+  document.getElementById('detailOverlay').classList.add('active');
+}
+
+function closeDetail(e) {
+  if (e.target.classList.contains('detail-overlay') || e.target.classList.contains('close-btn'))
+    document.getElementById('detailOverlay').classList.remove('active');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('detailOverlay').classList.remove('active');
+});
+
+window.addEventListener('resize', () => {
+  const w = container.clientWidth, h = container.clientHeight;
+  svg.attr('width', w).attr('height', h);
+});
+</script>
+</body>
+</html>
